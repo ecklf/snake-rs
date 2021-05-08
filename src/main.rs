@@ -1,3 +1,6 @@
+extern crate rand;
+extern crate termion;
+
 use std::iter;
 use std::time::Duration;
 use std::thread::sleep;
