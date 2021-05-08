@@ -1,5 +1,6 @@
 extern crate rand;
 extern crate termion;
+extern crate chrono;
 
 use std::iter;
 use std::time::Duration;
