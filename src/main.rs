@@ -216,6 +216,7 @@ impl<R: Read, W: Write> Game<R, W> {
             self.stdin.read(&mut b).unwrap();
             if b[0] == b'r' {
                 self.score = 0;
+                self.interval = START_INTERVAL;
                 self.snake = self.new_snake();
                 self.munchie = Munchie {
                     position: Position {
