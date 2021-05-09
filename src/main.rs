@@ -20,7 +20,7 @@ pub const MIN_INTERVAL: u64 = 75;
 pub const INTERVAL_DELTA: u64 = 2;
 
 mod graphics {
-    pub const STARTUP_SCREEN: &'static str = "      ___           ___           ___           ___           ___           ___           ___     \r
+    pub const STARTUP_SCREEN: &str = "      ___           ___           ___           ___           ___           ___           ___     \r
      /\\__\\         /\\  \\         /\\  \\         /|  |         /\\__\\         /\\  \\         /\\__\\    \r
     /:/ _/_        \\:\\  \\       /::\\  \\       |:|  |        /:/ _/_       /::\\  \\       /:/ _/_   \r
    /:/ /\\  \\        \\:\\  \\     /:/\\:\\  \\      |:|  |       /:/ /\\__\\     /:/\\:\\__\\     /:/ /\\  \\  \r
@@ -32,13 +32,13 @@ mod graphics {
      /:/  /       \\:\\__\\        \\:\\__\\        \\:\\__\\        \\::/  /       \\:\\__\\         /:/  /   \r
      \\/__/         \\/__/         \\/__/         \\/__/         \\/__/         \\/__/         \\/__/    \r
     ";
-    pub const TOP_LEFT_CORNER: &'static str = "╔";
-    pub const TOP_RIGHT_CORNER: &'static str = "╗";
-    pub const BOTTOM_LEFT_CORNER: &'static str = "╚";
-    pub const BOTTOM_RIGHT_CORNER: &'static str = "╝";
-    pub const VERTICAL_LINE: &'static str = "║";
-    pub const HORIZONTAL_LINE: &'static str = "═";
-    pub const SNAKE_FRAGMENT: &'static str = "@";
+    pub const TOP_LEFT_CORNER: &str = "╔";
+    pub const TOP_RIGHT_CORNER: &str = "╗";
+    pub const BOTTOM_LEFT_CORNER: &str = "╚";
+    pub const BOTTOM_RIGHT_CORNER: &str = "╝";
+    pub const VERTICAL_LINE: &str = "║";
+    pub const HORIZONTAL_LINE: &str = "═";
+    pub const SNAKE_FRAGMENT: &str = "@";
 }
 
 use self::graphics::*;
@@ -108,7 +108,7 @@ impl Snake {
             (Direction::Up, Direction::Down)
             | (Direction::Down, Direction::Up)
             | (Direction::Left, Direction::Right)
-            | (Direction::Right, Direction::Left) => return,
+            | (Direction::Right, Direction::Left) => {}
             _ => self.direction = direction,
         }
     }
@@ -123,8 +123,8 @@ struct Munchie {
     position: Position,
 }
 
-impl<R: Read, W: Write> Game<R, W> {
-    fn new(stdin: R, stdout: W) -> Game<R, RawTerminal<W>> {
+impl<R: Read, W: Write> Game<R, RawTerminal<W>> {
+    fn new(stdin: R, stdout: W) -> Self {
         Game {
             stdout: stdout.into_raw_mode().unwrap(),
             stdin,
@@ -350,9 +350,7 @@ impl<R: Read, W: Write> Game<R, W> {
                     .snake
                     .fragments
                     .iter()
-                    .filter(|fragment| fragment.position == rng_position)
-                    .next()
-                    .is_some()
+                    .any(|fragment| fragment.position == rng_position)
                 {
                     continue;
                 } else {
@@ -379,7 +377,7 @@ impl<R: Read, W: Write> Game<R, W> {
         )
         .unwrap();
         write!(self.stdout, "{}", style::Reset).unwrap();
-        return false;
+        false
     }
 
     fn check_collision(&mut self) -> bool {
@@ -479,7 +477,7 @@ impl<R: Read, W: Write> Game<R, W> {
                 match event {
                     Event::Key(Key::Char('q')) => break 'game_loop,
                     Event::Key(Key::Char('p')) => {
-                        if self.pause() == true {
+                        if self.pause() {
                             break 'game_loop;
                         }
                     }
@@ -506,10 +504,8 @@ impl<R: Read, W: Write> Game<R, W> {
             self.draw_snake();
 
             // determine game state
-            if self.check_collision() {
-                if self.game_over() {
-                    break 'game_loop;
-                }
+            if self.check_collision() && self.game_over() {
+                break 'game_loop;
             }
 
             // display stats
