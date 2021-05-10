@@ -1,7 +1,3 @@
-extern crate chrono;
-extern crate rand;
-extern crate termion;
-
 use chrono::{DateTime, Local};
 use rand::rngs::ThreadRng;
 use rand::Rng;
