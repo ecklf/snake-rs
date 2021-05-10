@@ -1,18 +1,18 @@
+extern crate chrono;
 extern crate rand;
 extern crate termion;
-extern crate chrono;
 
-use std::iter;
-use std::time::Duration;
-use std::thread::sleep;
-use std::io::{Read, stdout, Write};
-use std::collections::VecDeque;
-use rand::Rng;
-use rand::rngs::ThreadRng;
 use chrono::{DateTime, Local};
-use termion::{async_stdin, clear, color, cursor, style};
-use termion::event::{Event, Key, parse_event};
+use rand::rngs::ThreadRng;
+use rand::Rng;
+use std::collections::VecDeque;
+use std::io::{stdout, Read, Write};
+use std::iter;
+use std::thread::sleep;
+use std::time::Duration;
+use termion::event::{parse_event, Event, Key};
 use termion::raw::{IntoRawMode, RawTerminal};
+use termion::{async_stdin, clear, color, cursor, style};
 
 // config
 pub const START_INTERVAL: u64 = 100;
@@ -20,7 +20,7 @@ pub const MIN_INTERVAL: u64 = 75;
 pub const INTERVAL_DELTA: u64 = 2;
 
 mod graphics {
-    pub const STARTUP_SCREEN: &'static str = "      ___           ___           ___           ___           ___           ___           ___     \r
+    pub const STARTUP_SCREEN: &str = "      ___           ___           ___           ___           ___           ___           ___     \r
      /\\__\\         /\\  \\         /\\  \\         /|  |         /\\__\\         /\\  \\         /\\__\\    \r
     /:/ _/_        \\:\\  \\       /::\\  \\       |:|  |        /:/ _/_       /::\\  \\       /:/ _/_   \r
    /:/ /\\  \\        \\:\\  \\     /:/\\:\\  \\      |:|  |       /:/ /\\__\\     /:/\\:\\__\\     /:/ /\\  \\  \r
@@ -32,13 +32,13 @@ mod graphics {
      /:/  /       \\:\\__\\        \\:\\__\\        \\:\\__\\        \\::/  /       \\:\\__\\         /:/  /   \r
      \\/__/         \\/__/         \\/__/         \\/__/         \\/__/         \\/__/         \\/__/    \r
     ";
-    pub const TOP_LEFT_CORNER: &'static str = "╔";
-    pub const TOP_RIGHT_CORNER: &'static str = "╗";
-    pub const BOTTOM_LEFT_CORNER: &'static str = "╚";
-    pub const BOTTOM_RIGHT_CORNER: &'static str = "╝";
-    pub const VERTICAL_LINE: &'static str = "║";
-    pub const HORIZONTAL_LINE: &'static str = "═";
-    pub const SNAKE_FRAGMENT: &'static str = "@";
+    pub const TOP_LEFT_CORNER: &str = "╔";
+    pub const TOP_RIGHT_CORNER: &str = "╗";
+    pub const BOTTOM_LEFT_CORNER: &str = "╚";
+    pub const BOTTOM_RIGHT_CORNER: &str = "╝";
+    pub const VERTICAL_LINE: &str = "║";
+    pub const HORIZONTAL_LINE: &str = "═";
+    pub const SNAKE_FRAGMENT: &str = "@";
 }
 
 use self::graphics::*;
@@ -108,8 +108,8 @@ impl Snake {
             (Direction::Up, Direction::Down)
             | (Direction::Down, Direction::Up)
             | (Direction::Left, Direction::Right)
-            | (Direction::Right, Direction::Left) => return,
-            _ => self.direction = direction
+            | (Direction::Right, Direction::Left) => {}
+            _ => self.direction = direction,
         }
     }
 }
@@ -123,8 +123,8 @@ struct Munchie {
     position: Position,
 }
 
-impl<R: Read, W: Write> Game<R, W> {
-    fn new(stdin: R, stdout: W) -> Game<R, RawTerminal<W>> {
+impl<R: Read, W: Write> Game<R, RawTerminal<W>> {
+    fn new(stdin: R, stdout: W) -> Self {
         Game {
             stdout: stdout.into_raw_mode().unwrap(),
             stdin,
@@ -154,20 +154,25 @@ impl<R: Read, W: Write> Game<R, W> {
                     },
                     SnakeFragment {
                         position: Position { x: 45, y: 20 },
-                    }
+                    },
                 ]),
             },
             munchie: Munchie {
-                position: Position {
-                    x: 20,
-                    y: 20,
-                }
+                position: Position { x: 20, y: 20 },
             },
         }
     }
 
     fn init(&mut self) {
-        write!(self.stdout, "{}{}{}{}", clear::All, style::Reset, cursor::Hide, cursor::Goto(1, 1)).unwrap();
+        write!(
+            self.stdout,
+            "{}{}{}{}",
+            clear::All,
+            style::Reset,
+            cursor::Hide,
+            cursor::Goto(1, 1)
+        )
+        .unwrap();
         write!(self.stdout, "{}{startup}{}\r\nBy https://github.com/impulse\r\n\nPress {bold}SPACE{reset} to start, {bold}Q{reset} to quit", color::Fg(color::Red), style::Reset, bold = style::Bold, reset = style::Reset, startup = STARTUP_SCREEN).unwrap();
         self.stdout.flush().unwrap();
         loop {
@@ -187,7 +192,19 @@ impl<R: Read, W: Write> Game<R, W> {
     fn pause(&mut self) -> bool {
         let paused_str = String::from("===PAUSED===");
 
-        write!(self.stdout, "{}{}{}{}{paused}", style::Bold, color::Bg(color::LightWhite), color::Fg(color::Black), cursor::Goto((self.width / 2) - (paused_str.len() as u16 / 2), self.height / 2), paused = paused_str).unwrap();
+        write!(
+            self.stdout,
+            "{}{}{}{}{paused}",
+            style::Bold,
+            color::Bg(color::LightWhite),
+            color::Fg(color::Black),
+            cursor::Goto(
+                (self.width / 2) - (paused_str.len() as u16 / 2),
+                self.height / 2
+            ),
+            paused = paused_str
+        )
+        .unwrap();
         write!(self.stdout, "{}", style::Reset).unwrap();
         self.stdout.flush().unwrap();
 
@@ -205,13 +222,33 @@ impl<R: Read, W: Write> Game<R, W> {
         }
     }
 
-
     fn game_over(&mut self) -> bool {
         let game_over_str = String::from("===GAME OVER===");
         let prompt_str = String::from("Press r to restart");
 
-        write!(self.stdout, "{}{}{}", style::Bold, color::Bg(color::LightWhite), color::Fg(color::Black)).unwrap();
-        write!(self.stdout, "{}{game_over_str}{}{prompt_str}", cursor::Goto((self.width / 2) - (game_over_str.len() as u16 / 2), (self.height / 2) - 1), cursor::Goto((self.width / 2) - (prompt_str.len() as u16 / 2), (self.height / 2) + 1), game_over_str = game_over_str, prompt_str = prompt_str).unwrap();
+        write!(
+            self.stdout,
+            "{}{}{}",
+            style::Bold,
+            color::Bg(color::LightWhite),
+            color::Fg(color::Black)
+        )
+        .unwrap();
+        write!(
+            self.stdout,
+            "{}{game_over_str}{}{prompt_str}",
+            cursor::Goto(
+                (self.width / 2) - (game_over_str.len() as u16 / 2),
+                (self.height / 2) - 1
+            ),
+            cursor::Goto(
+                (self.width / 2) - (prompt_str.len() as u16 / 2),
+                (self.height / 2) + 1
+            ),
+            game_over_str = game_over_str,
+            prompt_str = prompt_str
+        )
+        .unwrap();
         write!(self.stdout, "{}", style::Reset).unwrap();
         self.stdout.flush().unwrap();
 
@@ -223,10 +260,7 @@ impl<R: Read, W: Write> Game<R, W> {
                 self.interval = START_INTERVAL;
                 self.snake = self.new_snake();
                 self.munchie = Munchie {
-                    position: Position {
-                        x: 20,
-                        y: 20,
-                    }
+                    position: Position { x: 20, y: 20 },
                 };
                 self.reset();
                 return false;
@@ -239,7 +273,14 @@ impl<R: Read, W: Write> Game<R, W> {
     }
 
     fn reset(&mut self) {
-        write!(self.stdout, "{}{}{}", cursor::Goto(1, 1), clear::All, style::Reset).unwrap();
+        write!(
+            self.stdout,
+            "{}{}{}",
+            cursor::Goto(1, 1),
+            clear::All,
+            style::Reset
+        )
+        .unwrap();
         self.draw_grid();
         self.stdout.flush().unwrap();
     }
@@ -265,7 +306,7 @@ impl<R: Read, W: Write> Game<R, W> {
                 },
                 SnakeFragment {
                     position: Position { x: 45, y: 20 },
-                }
+                },
             ]),
         }
     }
@@ -292,7 +333,12 @@ impl<R: Read, W: Write> Game<R, W> {
 
         // generate new munchie position when eaten
         if head_pos == munchie_pos {
-            write!(self.stdout, "{} ", cursor::Goto(munchie_pos.x, munchie_pos.y)).unwrap();
+            write!(
+                self.stdout,
+                "{} ",
+                cursor::Goto(munchie_pos.x, munchie_pos.y)
+            )
+            .unwrap();
 
             loop {
                 let rng_position = Position {
@@ -300,25 +346,38 @@ impl<R: Read, W: Write> Game<R, W> {
                     y: self.rng.gen_range(2..self.height),
                 };
 
-                if self.snake.fragments.iter().filter(|fragment| {
-                    fragment.position == rng_position
-                }).next().is_some() {
+                if self
+                    .snake
+                    .fragments
+                    .iter()
+                    .any(|fragment| fragment.position == rng_position)
+                {
                     continue;
                 } else {
                     self.munchie.position = rng_position;
                     break;
                 }
-            };
+            }
 
-            write!(self.stdout, "{}#", cursor::Goto(munchie_pos.x, munchie_pos.y)).unwrap();
+            write!(
+                self.stdout,
+                "{}#",
+                cursor::Goto(munchie_pos.x, munchie_pos.y)
+            )
+            .unwrap();
             return true;
         }
 
         // draw munchie
         write!(self.stdout, "{}{}", style::Bold, color::Fg(color::Red)).unwrap();
-        write!(self.stdout, "{}¤", cursor::Goto(munchie_pos.x, munchie_pos.y)).unwrap();
+        write!(
+            self.stdout,
+            "{}¤",
+            cursor::Goto(munchie_pos.x, munchie_pos.y)
+        )
+        .unwrap();
         write!(self.stdout, "{}", style::Reset).unwrap();
-        return false;
+        false
     }
 
     fn check_collision(&mut self) -> bool {
@@ -326,12 +385,24 @@ impl<R: Read, W: Write> Game<R, W> {
 
         // check frame collision and overwrite border element when hit
         if head_pos.x == 1 || head_pos.x == self.width {
-            write!(self.stdout, "{}{}", cursor::Goto(head_pos.x, head_pos.y), VERTICAL_LINE).unwrap();
+            write!(
+                self.stdout,
+                "{}{}",
+                cursor::Goto(head_pos.x, head_pos.y),
+                VERTICAL_LINE
+            )
+            .unwrap();
             return true;
         }
 
         if head_pos.y == 1 || head_pos.y == self.height {
-            write!(self.stdout, "{}{}", cursor::Goto(head_pos.x, head_pos.y), HORIZONTAL_LINE).unwrap();
+            write!(
+                self.stdout,
+                "{}{}",
+                cursor::Goto(head_pos.x, head_pos.y),
+                HORIZONTAL_LINE
+            )
+            .unwrap();
             return true;
         }
 
@@ -348,20 +419,50 @@ impl<R: Read, W: Write> Game<R, W> {
     fn draw_grid(&mut self) {
         // draw corners
         write!(self.stdout, "{}{}", cursor::Goto(1, 1), TOP_LEFT_CORNER).unwrap();
-        write!(self.stdout, "{}{}", cursor::Goto(self.width, 1), TOP_RIGHT_CORNER).unwrap();
-        write!(self.stdout, "{}{}", cursor::Goto(1, self.height), BOTTOM_LEFT_CORNER).unwrap();
-        write!(self.stdout, "{}{}", cursor::Goto(self.width, self.height), BOTTOM_RIGHT_CORNER).unwrap();
+        write!(
+            self.stdout,
+            "{}{}",
+            cursor::Goto(self.width, 1),
+            TOP_RIGHT_CORNER
+        )
+        .unwrap();
+        write!(
+            self.stdout,
+            "{}{}",
+            cursor::Goto(1, self.height),
+            BOTTOM_LEFT_CORNER
+        )
+        .unwrap();
+        write!(
+            self.stdout,
+            "{}{}",
+            cursor::Goto(self.width, self.height),
+            BOTTOM_RIGHT_CORNER
+        )
+        .unwrap();
 
         // draw horizontal borders (ignore first and last element)
         for i in 2..self.width {
             write!(self.stdout, "{}{}", cursor::Goto(i, 1), HORIZONTAL_LINE).unwrap();
-            write!(self.stdout, "{}{}", cursor::Goto(i, self.height), HORIZONTAL_LINE).unwrap();
+            write!(
+                self.stdout,
+                "{}{}",
+                cursor::Goto(i, self.height),
+                HORIZONTAL_LINE
+            )
+            .unwrap();
         }
 
         // draw vertical borders (ignore first and last element)
         for i in 2..self.height {
             write!(self.stdout, "{}{}", cursor::Goto(1, i), VERTICAL_LINE).unwrap();
-            write!(self.stdout, "{}{}", cursor::Goto(self.width, i), VERTICAL_LINE).unwrap();
+            write!(
+                self.stdout,
+                "{}{}",
+                cursor::Goto(self.width, i),
+                VERTICAL_LINE
+            )
+            .unwrap();
         }
 
         self.stdout.flush().unwrap();
@@ -375,7 +476,11 @@ impl<R: Read, W: Write> Game<R, W> {
             if let Ok(event) = parse_event(key_bytes[0], &mut iter::empty::<_>()) {
                 match event {
                     Event::Key(Key::Char('q')) => break 'game_loop,
-                    Event::Key(Key::Char('p')) => if self.pause() == true { break 'game_loop; },
+                    Event::Key(Key::Char('p')) => {
+                        if self.pause() {
+                            break 'game_loop;
+                        }
+                    }
                     Event::Key(Key::Char('k')) => self.snake.turn(Direction::Up),
                     Event::Key(Key::Char('j')) => self.snake.turn(Direction::Down),
                     Event::Key(Key::Char('h')) => self.snake.turn(Direction::Left),
@@ -399,10 +504,8 @@ impl<R: Read, W: Write> Game<R, W> {
             self.draw_snake();
 
             // determine game state
-            if self.check_collision() {
-                if self.game_over() {
-                    break 'game_loop;
-                }
+            if self.check_collision() && self.game_over() {
+                break 'game_loop;
             }
 
             // display stats
@@ -427,6 +530,14 @@ fn main() {
     let mut app = Game::new(async_stdin(), stdout.lock());
     app.init();
     // clear the screen and show cursor when exiting
-    write!(app.stdout, "{}{}{}{}", clear::All, style::Reset, cursor::Show, cursor::Goto(1, 1)).unwrap();
+    write!(
+        app.stdout,
+        "{}{}{}{}",
+        clear::All,
+        style::Reset,
+        cursor::Show,
+        cursor::Goto(1, 1)
+    )
+    .unwrap();
     app.stdout.flush().unwrap();
 }
