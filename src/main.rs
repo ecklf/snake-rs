@@ -169,7 +169,7 @@ impl<R: Read, W: Write> Game<R, RawTerminal<W>> {
             cursor::Goto(1, 1)
         )
         .unwrap();
-        write!(self.stdout, "{}{startup}{}\r\nBy https://github.com/impulse\r\n\nPress {bold}SPACE{reset} to start, {bold}Q{reset} to quit", color::Fg(color::Red), style::Reset, bold = style::Bold, reset = style::Reset, startup = STARTUP_SCREEN).unwrap();
+        write!(self.stdout, "{}{startup}{}\r\nBy https://github.com/ecklf\r\n\nPress {bold}SPACE{reset} to start, {bold}Q{reset} to quit", color::Fg(color::Red), style::Reset, bold = style::Bold, reset = style::Reset, startup = STARTUP_SCREEN).unwrap();
         self.stdout.flush().unwrap();
         loop {
             let mut b = [0];
